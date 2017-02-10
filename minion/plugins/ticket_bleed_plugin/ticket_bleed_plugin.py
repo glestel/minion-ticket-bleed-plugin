@@ -4,8 +4,8 @@
 
 import logging
 import socket
-import urlparse
 import uuid
+from urlparse import urlparse
 from minion.plugins.base import ExternalProcessPlugin
 
 
@@ -54,6 +54,7 @@ class TicketBleedPlugin(ExternalProcessPlugin):
         self.plugin_logger.addHandler(ch)
 
     def do_start(self):
+        self.plugin_logger.debug(self.configuration)
         # Get target for scan
         url = urlparse(self.configuration['target'])
         self.target = url.hostname
@@ -66,7 +67,7 @@ class TicketBleedPlugin(ExternalProcessPlugin):
         self.RUN_ARGS.append(self.ticket_bleep_path)
         self.RUN_ARGS.append(self.target)
 
-        self.plugin_logger.info("Running with command {cmd}", cmd=str(self.RUN_ARGS))
+        self.plugin_logger.info("Running with command {cmd}".format(cmd=str(self.RUN_ARGS)))
         self.spawn(self.RUN_COMMAND, self.RUN_ARGS)
 
     def do_process_stdout(self, data):
@@ -80,7 +81,7 @@ class TicketBleedPlugin(ExternalProcessPlugin):
             self.report_finish("STOPPED")
         elif status == 0:
 
-            issues = self.create_issue()
+            issues = self.parse_result()
 
             self.report_issues(issues)
 
@@ -128,13 +129,15 @@ class TicketBleedPlugin(ExternalProcessPlugin):
         # Check answer of plugin
         if "OK" in self.plugin_stdout:
             # success
-            # TODO raise info if needed
-            pass
+            # TODO make it an option
+            issues.append(self.create_ok())
         elif "KO" in self.plugin_stdout:
             issues.append(self.create_issue())
         else:
             # unknown state, error
             pass
+
+        return issues
 
     def create_issue(self):
         issue = {
@@ -148,5 +151,18 @@ class TicketBleedPlugin(ExternalProcessPlugin):
             'URLs': [{'URL': self.target}],
         }
 
+        return issue
+
+    def create_ok(self):
+        issue = {
+            "Summary": "Ticketbleed not vulnerable",
+            "Severity": "Info",
+            "Description": "The target is not vulnerable with the F5 Ticketbleed vulnerability",
+            "Classification": {
+                "cwe_id": "126",
+                "cwe_url": "http://cwe.mitre.org/data/definitions/126.html"
+            },
+            'URLs': [{'URL': self.target}],
+        }
         return issue
 

@@ -12,7 +12,7 @@ from minion.plugins.base import ExternalProcessPlugin
 class TicketBleedPlugin(ExternalProcessPlugin):
 
     PLUGIN_NAME = "TicketBleedChecker"
-    PLUGIN_VERSION = "0.1"
+    PLUGIN_VERSION = "0.2"
     PLUGIN_WEIGHT = "light"
 
     RUN_COMMAND = "timeout"
@@ -32,6 +32,7 @@ class TicketBleedPlugin(ExternalProcessPlugin):
     def do_configure(self):
         if 'report_dir' in self.configuration:
             self.report_dir = self.configuration['report_dir']
+            self.logger_path = self.report_dir + "logging_" + self.output_id + ".txt"
 
         if "ticket_path" in self.configuration:
             self.ticket_bleep_path = self.configuration['ticket_path']
